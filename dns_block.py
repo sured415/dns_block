@@ -2,7 +2,10 @@ import pydivert
 import re
 from dnslib import *
 
-ban_site = re.compile("naver.com")
+regex = re.compile("DNS Question: '([^\r]*).'")
+f = open("test.txt", "r")
+ban_list = f.read()
+f.close()
 
 w = pydivert.WinDivert("udp.DstPort == 53 and udp.PayloadLength > 0")
 
@@ -12,14 +15,17 @@ while True:
     packet = w.recv()
 
     dns_hdr = DNSRecord.parse(packet.udp.payload)
-    print(dns_hdr.questions)
+    #print(dns_hdr.questions)
 
-    host_name = '{0}'.format(dns_hdr.questions)
-    
-    search_site = ban_site.search(host_name)
-    if search_site != None:
-        print("dns block")
+    find_obj = regex.search('{0}'.format(dns_hdr.questions))
+    host_name = find_obj.group(1)
+
+    if host_name in ban_list:
+        print("   " + host_name + "   block")
     else:
         w.send(packet)
 
 w.close()
+
+
+#[<DNS Question: 'www.google.co.kr.' qtype=A qclass=IN>]
